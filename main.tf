@@ -22,39 +22,77 @@ resource "aws_s3_bucket" "s3_bucket" {
 /*-Create IAM Policy--*/
 
 resource "aws_iam_policy" "dynamodb_policy" {
-  name        = "tschui-dynamodb-read-${random_id.suffix.hex}"
+  #name        = "tschui-dynamodb-read-${random_id.suffix.hex}"
+  name        = "tschui-dynamodb-read"
   description = "Policy to access DynamoDB table"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "dynamodb:ListTables",
-          "dynamodb:ListStreams",
-          "dynamodb:ListBackups",
-          "dynamodb:ListGlobalTables",
-          "dynamodb:GetItem",
-          "dynamodb:Query",
-          "dynamodb:Scan",
-          "dynamodb:DescribeTable",
-          "dynamodb:DescribeStream"
-        ]
-        Resource = "arn:aws:dynamodb:ap-southeast-1:123456789012:table/tschui-bookinventory"
-      }
-    ]
-  })
+  policy = jsonencode(
+    {
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Sid" : "VisualEditor0",
+          "Effect" : "Allow",
+          "Action" : [
+            "dynamodb:BatchGetItem",
+            "dynamodb:DescribeImport",
+            "dynamodb:ConditionCheckItem",
+            "dynamodb:DescribeContributorInsights",
+            "dynamodb:Scan",
+            "dynamodb:ListTagsOfResource",
+            "dynamodb:Query",
+            "dynamodb:DescribeStream",
+            "dynamodb:DescribeTimeToLive",
+            "dynamodb:DescribeGlobalTableSettings",
+            "dynamodb:PartiQLSelect",
+            "dynamodb:DescribeTable",
+            "dynamodb:GetShardIterator",
+            "dynamodb:DescribeGlobalTable",
+            "dynamodb:GetItem",
+            "dynamodb:DescribeContinuousBackups",
+            "dynamodb:DescribeExport",
+            "dynamodb:GetResourcePolicy",
+            "dynamodb:DescribeKinesisStreamingDestination",
+            "dynamodb:DescribeBackup",
+            "dynamodb:GetRecords",
+            "dynamodb:DescribeTableReplicaAutoScaling"
+          ],
+          "Resource" : "arn:aws:dynamodb:ap-southeast-1:255945442255:table/tschui-bookinventory"
+        },
+        {
+          "Sid" : "VisualEditor1",
+          "Effect" : "Allow",
+          "Action" : [
+            "dynamodb:ListContributorInsights",
+            "dynamodb:DescribeReservedCapacityOfferings",
+            "dynamodb:ListGlobalTables",
+            "dynamodb:ListTables",
+            "dynamodb:DescribeReservedCapacity",
+            "dynamodb:ListBackups",
+            "dynamodb:GetAbacStatus",
+            "dynamodb:ListImports",
+            "dynamodb:DescribeLimits",
+            "dynamodb:DescribeEndpoints",
+            "dynamodb:ListExports",
+            "dynamodb:ListStreams"
+          ],
+          "Resource" : "*"
+        }
+      ]
+    }
+
+  )
 }
 
 /*-Create IAM Role--*/
-
+/*
 resource "random_id" "suffix" {
   byte_length = 4
 }
-
+*/
 
 resource "aws_iam_role" "dynamodb_role" {
-  name = "tschui-dynamodb-read-role-${random_id.suffix.hex}"
+  #name = "tschui-dynamodb-read-role-${random_id.suffix.hex}"
+  name = "tschui-dynamodb-read-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -91,7 +129,7 @@ data "aws_ami" "amazon_linux" {
   # Filter by name or other parameters (e.g., Amazon Linux 2023)
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["al2023-ami-2023.*-x86_64"]
   }
 }
 
@@ -103,18 +141,18 @@ data "aws_subnets" "public" {
   }
   filter {
     name   = "tag:Name"
-    values = ["public-*"]
+    values = ["subnet-*"]
   }
 }
 
 /*-Create EC2 Instanace-*/
 
 resource "aws_instance" "dynamodb_reader" {
-  #ami                         = data.aws_ami.amazon_linux.id        # Replace with the Amazon Linux 2023 AMI ID
+  #ami = data.aws_ami.amazon_linux.id # Replace with the Amazon Linux 2023 AMI ID
   ami           = "ami-0f935a2ecd3a7bd5c" # Replace with the Amazon Linux 2023 AMI ID
   instance_type = "t2.micro"              # Choose the appropriate instance type
   #key_name                    = "tschui-dynamodb-reade.pem"    # Replace with your EC2 key pair name
-  #subnet_id                   = data.aws_subnets.public.ids[0] #Public Subnet ID, e.g. subnet-xxxxxxxxxxx.
+  #subnet_id = data.aws_subnets.public.ids[0] #Public Subnet ID, e.g. subnet-xxxxxxxxxxx.
   subnet_id                   = "subnet-004425cdf7e7a28a8" #Public Subnet ID, e.g. subnet-xxxxxxxxxxx.
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.dynamodb_reader_sg.id]
