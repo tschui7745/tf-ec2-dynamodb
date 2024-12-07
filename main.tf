@@ -22,7 +22,6 @@ resource "aws_s3_bucket" "s3_bucket" {
 /*-Create IAM Policy--*/
 
 resource "aws_iam_policy" "dynamodb_policy" {
-  #name        = "tschui-dynamodb-read-${random_id.suffix.hex}"
   name        = "tschui-dynamodb-read"
   description = "Policy to access DynamoDB table"
   policy = jsonencode(
@@ -83,15 +82,7 @@ resource "aws_iam_policy" "dynamodb_policy" {
   )
 }
 
-/*-Create IAM Role--*/
-/*
-resource "random_id" "suffix" {
-  byte_length = 4
-}
-*/
-
 resource "aws_iam_role" "dynamodb_role" {
-  #name = "tschui-dynamodb-read-role-${random_id.suffix.hex}"
   name = "tschui-dynamodb-read-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -116,10 +107,22 @@ resource "aws_iam_role_policy_attachment" "attach_dynamodb_policy" {
 
 /*-Create EC2 Variable-*/
 
-variable "vpc_id" {
-  description = "vpc id"
-  type        = string
-  default     = "vpc-0e56f629cb53b94b7"
+data "aws_vpc" "vpc_id" {
+  filter {
+    name   = "tag:Name"
+    values = ["shared-vpc"] #vpc-04cdd2b9251b86e69 (shared-vpc)
+  }
+}
+
+data "aws_subnets" "public" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.vpc_id.id]
+  }
+  filter {
+    name   = "tag:Name"
+    values = ["*-public-*"] #subnet-0088a8912029e13c6 (shared-vpc-public-ap-southeast-1a)
+  }
 }
 
 data "aws_ami" "amazon_linux" {
@@ -129,35 +132,21 @@ data "aws_ami" "amazon_linux" {
   # Filter by name or other parameters (e.g., Amazon Linux 2023)
   filter {
     name   = "name"
-    values = ["al2023-ami-2023.*-x86_64"]
+    values = ["al2023-ami-2023.*-x86_64"] #ami-0f935a2ecd3a7bd5c, al2023-ami-2023.6.20241121.0-kernel-6.1-x86_64
   }
 }
 
-
-data "aws_subnets" "public" {
-  filter {
-    name   = "vpc-id"
-    values = [var.vpc_id]
-  }
-  filter {
-    name   = "tag:Name"
-    values = ["subnet-*"]
-  }
-}
 
 /*-Create EC2 Instanace-*/
 
 resource "aws_instance" "dynamodb_reader" {
-  #ami = data.aws_ami.amazon_linux.id # Replace with the Amazon Linux 2023 AMI ID
-  ami           = "ami-0f935a2ecd3a7bd5c" # Replace with the Amazon Linux 2023 AMI ID
-  instance_type = "t2.micro"              # Choose the appropriate instance type
+  ami           = data.aws_ami.amazon_linux.id # Replace with the Amazon Linux 2023 AMI ID
+  instance_type = "t2.micro"                   # Choose the appropriate instance type
   #key_name                    = "tschui-dynamodb-reade.pem"    # Replace with your EC2 key pair name
-  #subnet_id = data.aws_subnets.public.ids[0] #Public Subnet ID, e.g. subnet-xxxxxxxxxxx.
-  subnet_id                   = "subnet-004425cdf7e7a28a8" #Public Subnet ID, e.g. subnet-xxxxxxxxxxx.
+  subnet_id                   = data.aws_subnets.public.ids[0] #Public Subnet ID, e.g. subnet-xxxxxxxxxxx. 
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.dynamodb_reader_sg.id]
-  #security_group         = aws_security_group.dynamodb_reader_sg.id
-  iam_instance_profile = aws_iam_instance_profile.dynamodb_reader_profile.name
+  iam_instance_profile        = aws_iam_instance_profile.dynamodb_reader_profile.name
 
   tags = {
     Name = "tschui-dynamodb-reader"
@@ -169,7 +158,8 @@ resource "aws_instance" "dynamodb_reader" {
 resource "aws_security_group" "dynamodb_reader_sg" {
   name        = "tschui-dynamodb-reader-sg"
   description = "Allow SSH and HTTPS access"
-  vpc_id      = var.vpc_id #VPC ID (Same VPC as your EC2 subnet above), e.g. vpc-xxxxxxxxxxx
+  #vpc_id      = var.vpc_id #VPC ID (Same VPC as your EC2 subnet above), e.g. vpc-xxxxxxxxxxx
+  vpc_id = data.aws_vpc.vpc_id.id
   lifecycle {
     create_before_destroy = true
   }

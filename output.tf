@@ -15,9 +15,14 @@ output "dynamodb_role_name" {
   value = aws_iam_role.dynamodb_role.name
 }
 
-
+/*
 output "vpc_id" {
   value = var.vpc_id
+}
+*/
+
+output "vpc_id" {
+  value = data.aws_vpc.vpc_id.id
 }
 
 output "public_subnet_id" {
