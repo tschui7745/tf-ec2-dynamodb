@@ -158,7 +158,6 @@ resource "aws_instance" "dynamodb_reader" {
 resource "aws_security_group" "dynamodb_reader_sg" {
   name        = "tschui-dynamodb-reader-sg"
   description = "Allow SSH and HTTPS access"
-  #vpc_id      = var.vpc_id #VPC ID (Same VPC as your EC2 subnet above), e.g. vpc-xxxxxxxxxxx
   vpc_id = data.aws_vpc.vpc_id.id
   lifecycle {
     create_before_destroy = true
