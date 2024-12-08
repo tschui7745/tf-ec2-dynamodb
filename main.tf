@@ -1,10 +1,15 @@
+locals {
+  name_prefix = "tschui"
+}
+
+
 /*-Create Dynamodb Table-*/
 
 resource "aws_dynamodb_table" "book_inventory_table" {
-  name         = var.table_name        # Table name 
-  hash_key     = var.hash_key_name     # Partition Key
-  range_key    = var.range_key_name    # Sort Key
-  billing_mode = var.billing_mode_name # On-demand billing
+  name         = "${local.name_prefix}-bookinventory" # Table name 
+  hash_key     = var.hash_key_name                    # Partition Key
+  range_key    = var.range_key_name                   # Sort Key
+  billing_mode = var.billing_mode_name                # On-demand billing
   attribute {
     name = var.hash_key_name
     type = "S" # String type
@@ -16,13 +21,13 @@ resource "aws_dynamodb_table" "book_inventory_table" {
 }
 
 resource "aws_s3_bucket" "s3_bucket" {
-  bucket = var.s3_bucket_name # The name of the S3 bucket (must be globally unique)
+  bucket = "${local.name_prefix}-s3-bucket" # The name of the S3 bucket (must be globally unique)
 }
 
 /*-Create IAM Policy--*/
 
 resource "aws_iam_policy" "dynamodb_policy" {
-  name        = "tschui-dynamodb-read"
+  name        = "${local.name_prefix}-dynamodb-read"
   description = "Policy to access DynamoDB table"
   policy = jsonencode(
     {
@@ -32,6 +37,8 @@ resource "aws_iam_policy" "dynamodb_policy" {
           "Sid" : "VisualEditor0",
           "Effect" : "Allow",
           "Action" : [
+            "dynamodb:Scan"
+            /*
             "dynamodb:BatchGetItem",
             "dynamodb:DescribeImport",
             "dynamodb:ConditionCheckItem",
@@ -54,13 +61,16 @@ resource "aws_iam_policy" "dynamodb_policy" {
             "dynamodb:DescribeBackup",
             "dynamodb:GetRecords",
             "dynamodb:DescribeTableReplicaAutoScaling"
+            */
           ],
-          "Resource" : "arn:aws:dynamodb:ap-southeast-1:255945442255:table/tschui-bookinventory"
+          "Resource" : "arn:aws:dynamodb:ap-southeast-1:255945442255:table/${local.name_prefix}-bookinventory"
         },
         {
           "Sid" : "VisualEditor1",
           "Effect" : "Allow",
           "Action" : [
+            "dynamodb:ListTables"
+            /*
             "dynamodb:ListContributorInsights",
             "dynamodb:DescribeReservedCapacityOfferings",
             "dynamodb:ListGlobalTables",
@@ -73,6 +83,7 @@ resource "aws_iam_policy" "dynamodb_policy" {
             "dynamodb:DescribeEndpoints",
             "dynamodb:ListExports",
             "dynamodb:ListStreams"
+            */
           ],
           "Resource" : "*"
         }
@@ -82,8 +93,10 @@ resource "aws_iam_policy" "dynamodb_policy" {
   )
 }
 
+/*-Create IAM Role--*/
+
 resource "aws_iam_role" "dynamodb_role" {
-  name = "tschui-dynamodb-read-role"
+  name = "${local.name_prefix}-dynamodb-read-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -121,7 +134,7 @@ data "aws_subnets" "public" {
   }
   filter {
     name   = "tag:Name"
-    values = ["*-public-*"] #subnet-0088a8912029e13c6 (shared-vpc-public-ap-southeast-1a)
+    values = ["*-public-*"]
   }
 }
 
@@ -140,25 +153,24 @@ data "aws_ami" "amazon_linux" {
 /*-Create EC2 Instanace-*/
 
 resource "aws_instance" "dynamodb_reader" {
-  ami           = data.aws_ami.amazon_linux.id # Replace with the Amazon Linux 2023 AMI ID
-  instance_type = "t2.micro"                   # Choose the appropriate instance type
-  #key_name                    = "tschui-dynamodb-reade.pem"    # Replace with your EC2 key pair name
-  subnet_id                   = data.aws_subnets.public.ids[0] #Public Subnet ID, e.g. subnet-xxxxxxxxxxx. 
+  ami                         = data.aws_ami.amazon_linux.id   # Replace with the Amazon Linux 2023 AMI ID
+  instance_type               = "t2.micro"                     # Choose the appropriate instance type
+  subnet_id                   = data.aws_subnets.public.ids[0] #Public Subnet ID, e.g. subnet-0088a8912029e13c6 (shared-vpc-public-ap-southeast-1a)
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.dynamodb_reader_sg.id]
   iam_instance_profile        = aws_iam_instance_profile.dynamodb_reader_profile.name
 
   tags = {
-    Name = "tschui-dynamodb-reader"
+    Name = "${local.name_prefix}-dynamodb-reader"
   }
 }
 
 /*-Create EC2 Securiy Group-*/
 
 resource "aws_security_group" "dynamodb_reader_sg" {
-  name        = "tschui-dynamodb-reader-sg"
+  name        = "${local.name_prefix}-dynamodb-reader-sg"
   description = "Allow SSH and HTTPS access"
-  vpc_id = data.aws_vpc.vpc_id.id
+  vpc_id      = data.aws_vpc.vpc_id.id
   lifecycle {
     create_before_destroy = true
   }
@@ -172,7 +184,7 @@ resource "aws_security_group" "dynamodb_reader_sg" {
   }
 
   // Allow HTTPS (port 443) outbound to any endpoint
-  egress {
+  ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -181,8 +193,8 @@ resource "aws_security_group" "dynamodb_reader_sg" {
 
   // Allow general outbound traffic (for the instance to access public URLs)
   egress {
-    from_port   = 0
-    to_port     = 0
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -191,6 +203,6 @@ resource "aws_security_group" "dynamodb_reader_sg" {
 /*- Create IAM Profie with IAM Role-*/
 
 resource "aws_iam_instance_profile" "dynamodb_reader_profile" {
-  name = "tschui-dynamodb-reader-profile"
+  name = "${local.name_prefix}-dynamodb-reader-profile"
   role = aws_iam_role.dynamodb_role.name # Replace with the IAM role you created
 }

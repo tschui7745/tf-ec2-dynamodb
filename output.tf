@@ -15,12 +15,6 @@ output "dynamodb_role_name" {
   value = aws_iam_role.dynamodb_role.name
 }
 
-/*
-output "vpc_id" {
-  value = var.vpc_id
-}
-*/
-
 output "vpc_id" {
   value = data.aws_vpc.vpc_id.id
 }
@@ -37,11 +31,9 @@ output "ami_id" {
   value = aws_instance.dynamodb_reader.id
 }
 
-
 output "ami_name" {
   value = data.aws_ami.amazon_linux.name
 }
-
 
 output "public_ip" {
   value = aws_instance.dynamodb_reader.public_ip
