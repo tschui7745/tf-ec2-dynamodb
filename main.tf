@@ -38,30 +38,6 @@ resource "aws_iam_policy" "dynamodb_policy" {
           "Effect" : "Allow",
           "Action" : [
             "dynamodb:Scan"
-            /*
-            "dynamodb:BatchGetItem",
-            "dynamodb:DescribeImport",
-            "dynamodb:ConditionCheckItem",
-            "dynamodb:DescribeContributorInsights",
-            "dynamodb:Scan",
-            "dynamodb:ListTagsOfResource",
-            "dynamodb:Query",
-            "dynamodb:DescribeStream",
-            "dynamodb:DescribeTimeToLive",
-            "dynamodb:DescribeGlobalTableSettings",
-            "dynamodb:PartiQLSelect",
-            "dynamodb:DescribeTable",
-            "dynamodb:GetShardIterator",
-            "dynamodb:DescribeGlobalTable",
-            "dynamodb:GetItem",
-            "dynamodb:DescribeContinuousBackups",
-            "dynamodb:DescribeExport",
-            "dynamodb:GetResourcePolicy",
-            "dynamodb:DescribeKinesisStreamingDestination",
-            "dynamodb:DescribeBackup",
-            "dynamodb:GetRecords",
-            "dynamodb:DescribeTableReplicaAutoScaling"
-            */
           ],
           "Resource" : "arn:aws:dynamodb:ap-southeast-1:255945442255:table/${local.name_prefix}-bookinventory"
         },
@@ -70,20 +46,6 @@ resource "aws_iam_policy" "dynamodb_policy" {
           "Effect" : "Allow",
           "Action" : [
             "dynamodb:ListTables"
-            /*
-            "dynamodb:ListContributorInsights",
-            "dynamodb:DescribeReservedCapacityOfferings",
-            "dynamodb:ListGlobalTables",
-            "dynamodb:ListTables",
-            "dynamodb:DescribeReservedCapacity",
-            "dynamodb:ListBackups",
-            "dynamodb:GetAbacStatus",
-            "dynamodb:ListImports",
-            "dynamodb:DescribeLimits",
-            "dynamodb:DescribeEndpoints",
-            "dynamodb:ListExports",
-            "dynamodb:ListStreams"
-            */
           ],
           "Resource" : "*"
         }
